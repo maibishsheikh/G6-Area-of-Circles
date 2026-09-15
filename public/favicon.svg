@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="45" fill="#15154a" stroke="#ffd54f" stroke-width="6"/>
+  <circle cx="50" cy="50" r="30" fill="none" stroke="#4fc3f7" stroke-dasharray="4,4" stroke-width="4"/>
+  <line x1="50" y1="50" x2="80" y2="50" stroke="#ff8a65" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="50" cy="50" r="6" fill="#ffd54f"/>
+  <text x="50" y="58" font-size="24" font-family="Arial" text-anchor="middle" fill="#ffffff">π</text>
+</svg>
