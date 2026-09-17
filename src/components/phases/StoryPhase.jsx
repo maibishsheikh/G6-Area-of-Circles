@@ -8,9 +8,43 @@ import { useAudio } from '../../hooks/useAudio.js';
 import { storyNarration } from '../../utils/narration.js';
 
 function StoryIllustration({ panel }) {
-  // Rich SVG fallback illustration for each story panel
   const p = panel.panel;
+  const [imgError, setImgError] = React.useState(false);
 
+  React.useEffect(() => {
+    setImgError(false);
+  }, [p]);
+
+  if (!imgError) {
+    return (
+      <div className="story-image-container" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+        <img
+          src={`/assets/story/${p + 1}.png`}
+          alt={panel.title}
+          className="story-full-img"
+          onError={() => setImgError(true)}
+        />
+        <span
+          className="fallback-emoji"
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            fontSize: '1.6rem',
+            background: 'rgba(0, 0, 0, 0.45)',
+            padding: '4px 8px',
+            borderRadius: '10px',
+            backdropFilter: 'blur(4px)',
+            pointerEvents: 'none',
+          }}
+        >
+          {panel.imageEmoji}
+        </span>
+      </div>
+    );
+  }
+
+  // Rich SVG fallback illustration for each story panel
   return (
     <div
       className="story-img-fallback"

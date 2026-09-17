@@ -28,7 +28,7 @@ export default function IntroScreen({ state, dispatch }) {
     <div className="intro-wrap">
       {/* Top Badge */}
       <div className="intro-top-badge">
-        ✨ Curriculum · Area of Circles, Semicircles &amp; Composite Figures Grade 6
+        ✨ Curriculum · Area of Circles &amp; Composite Figures · Grade 6
       </div>
 
       {/* Main Title */}
@@ -41,13 +41,13 @@ export default function IntroScreen({ state, dispatch }) {
       <div className="intro-mascot-row">
         <div className="intro-mascot-circle">🦉</div>
         <div className="intro-speech-bubble">
-          Hoo-hoo! I'm Tally. Ready to discover the secrets of π,<br />calculate circular areas, and build running tracks? 🎯📐
+          Hoo-hoo! I'm Tally.<br />Ready to master π, circular area &amp; composite shapes? 🎯📐
         </div>
       </div>
 
       {/* Description */}
       <p className="intro-desc">
-        Learn how radius and diameter relate, discover why Area = πr², construct stadium tracks, and crack shaded region puzzles like an expert mathematician!
+        Discover why Area = πr², connect radius &amp; diameter, build stadium tracks, and crack shaded-region puzzles like a true mathematician!
       </p>
 
       {/* Journey Card */}

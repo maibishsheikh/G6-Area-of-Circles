@@ -1,7 +1,10 @@
 // src/components/simulations/ShadedRegionDetective.jsx
-// Station D: Shaded Region Detective — Error Spotting Challenge in Blueprints
+// Station D: Shaded Region Detective — Error Spotting Challenge in Blueprints.
+// Enhanced with a glowing shaded-region reveal on success, a pulsing "found it"
+// highlight, and a shake cue on incorrect picks.
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import './Stations.css';
 import { useAudio } from '../../hooks/useAudio.js';
 
@@ -24,8 +27,7 @@ const CASES = [
       { text: 'Add both areas together: 196 + 616 = 812 cm²', correct: false },
     ],
     correctedResult: '196 cm² − 154 cm² = 42 cm²',
-    side: 14,
-    radius: 7,
+    shadedPath: 'M175,45 H365 V235 H175 Z M270,140 m-82,0 a82,82 0 1,0 164,0 a82,82 0 1,0 -164,0',
   },
   {
     id: 1,
@@ -45,8 +47,7 @@ const CASES = [
       { text: 'Divide the outer area by 4: 314 ÷ 4 = 78.5 cm²', correct: false },
     ],
     correctedResult: '314 cm² − 113.04 cm² = 200.96 cm²',
-    rOuter: 10,
-    rInner: 6,
+    shadedPath: 'M270,140 m-105,0 a105,105 0 1,0 210,0 a105,105 0 1,0 -210,0 M270,140 m-60,0 a60,60 0 1,0 120,0 a60,60 0 1,0 -120,0',
   },
   {
     id: 2,
@@ -66,9 +67,7 @@ const CASES = [
       { text: 'Divide rectangle by 4: 200 ÷ 4 = 50 cm²', correct: false },
     ],
     correctedResult: '200 cm² − 157 cm² = 43 cm²',
-    length: 20,
-    width: 10,
-    radius: 10,
+    shadedPath: 'M120,50 H420 V210 H120 Z M192,210 A78,78 0 0 1 348,210 Z',
   },
 ];
 
@@ -78,10 +77,13 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
   const [selectedStep, setSelectedStep] = useState(null);
   const [selectedFix, setSelectedFix] = useState(null);
   const [solvedCases, setSolvedCases] = useState([false, false, false]);
+  const [shakeKey, setShakeKey] = useState(0);
 
   const activeCase = CASES[caseIdx];
   const isSolved = solvedCases[caseIdx];
   const allSolved = solvedCases.every(Boolean);
+  const flawedStepId = activeCase.steps.find((s) => s.isFlawed).id;
+  const flawFound = selectedStep === flawedStepId;
 
   function handleStepClick(step) {
     if (isSolved) return;
@@ -90,20 +92,11 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
 
     if (step.isFlawed) {
       sounds.click();
-      narrate([
-        {
-          text: `Aha! You spotted the flaw in Step 2! Now select the correct mathematical repair from the options below.`,
-          style: 'encouragement',
-        },
-      ]);
+      narrate([{ text: 'Aha! You spotted the flaw! Now select the correct mathematical repair from the options below.', style: 'encouragement' }]);
     } else {
       sounds.wrong();
-      narrate([
-        {
-          text: `Step ${step.id} is actually mathematically correct! Look closely at the circle calculation in Step 2.`,
-          style: 'thinking',
-        },
-      ]);
+      setShakeKey((k) => k + 1);
+      narrate([{ text: `Step ${step.id} is actually mathematically correct! Look closely at the circle calculation instead.`, style: 'thinking' }]);
     }
   }
 
@@ -117,21 +110,11 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
       const updated = [...solvedCases];
       updated[caseIdx] = true;
       setSolvedCases(updated);
-
-      narrate([
-        {
-          text: `Case cracked! The blueprint error is corrected! Result is ${activeCase.correctedResult}.`,
-          style: 'celebration',
-        },
-      ]);
+      narrate([{ text: `Case cracked! The blueprint error is corrected! Result is ${activeCase.correctedResult}.`, style: 'celebration' }]);
     } else {
       sounds.wrong();
-      narrate([
-        {
-          text: `That repair isn't correct. Remember the golden rule of finding remaining shaded areas: total shape minus cutout!`,
-          style: 'encouragement',
-        },
-      ]);
+      setShakeKey((k) => k + 1);
+      narrate([{ text: "That repair isn't correct. Remember: total shape minus cutout!", style: 'encouragement' }]);
     }
   }
 
@@ -156,90 +139,109 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
       <div className="station-grid-2col">
         {/* Left Column: Blueprint Visual */}
         <div className="station-col-left">
-          <div
+          <motion.div
+            key={caseIdx}
+            initial={{ opacity: 0.4 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.35 }}
             className="glass-card"
             style={{
-              padding: '12px',
+              padding: '6px 10px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               flex: 1,
+              minHeight: 0,
               background: 'radial-gradient(ellipse at center, rgba(14, 116, 144, 0.25) 0%, rgba(10, 10, 46, 0.95) 100%)',
               border: isSolved ? '2px solid #4ade80' : '1.5px solid rgba(56, 189, 248, 0.4)',
-              boxShadow: isSolved ? '0 0 24px rgba(74, 222, 128, 0.35)' : 'none',
-              transition: 'all 0.3s ease',
+              boxShadow: isSolved ? '0 0 16px rgba(74, 222, 128, 0.35)' : 'none',
+              transition: 'border 0.3s ease, box-shadow 0.3s ease',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.85rem', fontWeight: 800, color: '#38bdf8' }}>
-              <span>📐 Blueprint: {activeCase.badge}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.8rem', fontWeight: 800, color: '#38bdf8' }}>
+              <span>
+                <motion.span
+                  style={{ display: 'inline-block' }}
+                  animate={{ rotate: [0, -12, 12, 0] }}
+                  transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.4 }}
+                >🔎</motion.span> {activeCase.badge}
+              </span>
               <span style={{ color: isSolved ? '#4ade80' : '#fcd34d' }}>
-                {isSolved ? '✅ Error Corrected!' : '⚠️ Seeded Error Detected'}
+                {isSolved ? '✅ Corrected!' : '⚠️ Error Detected'}
               </span>
             </div>
 
             {/* Blueprint SVG Graphic */}
-            <svg viewBox="0 0 200 150" width="200" height="130" style={{ overflow: 'visible', margin: '4px 0' }}>
+            <svg viewBox="0 0 540 280" style={{ width: '100%', height: '100%', maxHeight: 'clamp(180px, 36vh, 290px)', overflow: 'visible', margin: '4px 0' }}>
+              {/* Engineering blueprint background subtle grid guidelines */}
+              <line x1="30" y1="140" x2="510" y2="140" stroke="rgba(56, 189, 248, 0.12)" strokeDasharray="5,5" />
+              <line x1="270" y1="20" x2="270" y2="260" stroke="rgba(56, 189, 248, 0.12)" strokeDasharray="5,5" />
+
               {activeCase.shapeType === 'circle-in-square' && (
                 <>
-                  <rect x="45" y="20" width="110" height="110" fill="rgba(56, 189, 248, 0.3)" stroke="#38bdf8" strokeWidth="2" />
-                  <circle cx="100" cy="75" r="45" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2" />
-                  <line x1="100" y1="75" x2="145" y2="75" stroke="#fcd34d" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <circle cx="100" cy="75" r="3" fill="#fcd34d" />
-                  <text x="122" y="70" fill="#fcd34d" fontSize="9" fontWeight="900" textAnchor="middle">r = 7 cm</text>
-                  <text x="100" y="14" fill="#38bdf8" fontSize="10" fontWeight="900" textAnchor="middle">Side = 14 cm</text>
+                  <rect x="175" y="45" width="190" height="190" fill="rgba(56, 189, 248, 0.3)" stroke="#38bdf8" strokeWidth="2.5" />
+                  <circle cx="270" cy="140" r="82" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2.5" />
+                  <line x1="270" y1="140" x2="352" y2="140" stroke="#fcd34d" strokeWidth="2" strokeDasharray="4,4" />
+                  <circle cx="270" cy="140" r="4" fill="#fcd34d" />
+                  <text x="311" y="132" fill="#fcd34d" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">r = 7 cm</text>
+                  <text x="270" y="34" fill="#38bdf8" fontSize="12" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">Side = 14 cm</text>
                 </>
               )}
 
               {activeCase.shapeType === 'ring' && (
                 <>
-                  <circle cx="100" cy="75" r="58" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" strokeWidth="2" />
-                  <circle cx="100" cy="75" r="32" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2" />
-                  <circle cx="100" cy="75" r="3" fill="#fcd34d" />
-                  <line x1="100" y1="75" x2="132" y2="75" stroke="#fcd34d" strokeWidth="1.5" />
-                  <text x="116" y="71" fill="#fcd34d" fontSize="9" fontWeight="900" textAnchor="middle">r = 6 cm</text>
-                  <line x1="100" y1="75" x2="100" y2="17" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <text x="100" y="12" fill="#38bdf8" fontSize="10" fontWeight="900" textAnchor="middle">R = 10 cm</text>
+                  <circle cx="270" cy="140" r="105" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" strokeWidth="2.5" />
+                  <circle cx="270" cy="140" r="60" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2.5" />
+                  <circle cx="270" cy="140" r="4" fill="#fcd34d" />
+                  <line x1="270" y1="140" x2="330" y2="140" stroke="#fcd34d" strokeWidth="2" />
+                  <text x="300" y="132" fill="#fcd34d" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">r = 6 cm</text>
+                  <line x1="270" y1="140" x2="270" y2="35" stroke="#38bdf8" strokeWidth="2" strokeDasharray="4,4" />
+                  <text x="270" y="25" fill="#38bdf8" fontSize="12" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">R = 10 cm</text>
                 </>
               )}
 
               {activeCase.shapeType === 'rect-minus-semi' && (
                 <>
-                  <rect x="35" y="25" width="130" height="95" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" strokeWidth="2" />
-                  <path d="M 60 120 A 40 40 0 0 1 140 120 Z" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2" />
-                  <circle cx="100" cy="120" r="3" fill="#fcd34d" />
-                  <line x1="100" y1="120" x2="100" y2="80" stroke="#fcd34d" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <text x="100" y="74" fill="#fcd34d" fontSize="9" fontWeight="900" textAnchor="middle">r = 10 cm</text>
-                  <text x="100" y="18" fill="#38bdf8" fontSize="10" fontWeight="900" textAnchor="middle">20 cm × 10 cm</text>
+                  <rect x="120" y="50" width="300" height="160" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" strokeWidth="2.5" />
+                  <path d="M 192 210 A 78 78 0 0 1 348 210 Z" fill="#0a0a2e" stroke="#fcd34d" strokeWidth="2.5" />
+                  <circle cx="270" cy="210" r="4" fill="#fcd34d" />
+                  <line x1="270" y1="210" x2="270" y2="132" stroke="#fcd34d" strokeWidth="2" strokeDasharray="4,4" />
+                  <text x="270" y="124" fill="#fcd34d" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">r = 10 cm</text>
+                  <text x="270" y="38" fill="#38bdf8" fontSize="12" fontWeight="900" textAnchor="middle" fontFamily="var(--font-display)">20 cm × 10 cm</text>
                 </>
               )}
+
+              {/* Shaded-region reveal glow — lights up the exact answer region on success */}
+              <motion.path
+                d={activeCase.shadedPath}
+                fillRule="evenodd"
+                fill="#4ade80"
+                initial={false}
+                animate={{ fillOpacity: isSolved ? [0, 0.55, 0.4] : 0 }}
+                transition={{ duration: 1.1, ease: 'easeOut' }}
+                stroke={isSolved ? '#4ade80' : 'transparent'}
+                strokeWidth="2.5"
+                style={{ filter: isSolved ? 'drop-shadow(0 0 8px rgba(74,222,128,0.85))' : 'none', pointerEvents: 'none' }}
+              />
             </svg>
 
-            <span style={{ fontSize: '0.8rem', color: '#cbd5e1', textAlign: 'center' }}>
-              {activeCase.dimensions}
+            <span style={{ fontSize: '0.75rem', color: '#cbd5e1', textAlign: 'center' }}>
+              {isSolved ? `Shaded area = ${activeCase.correctedResult}` : activeCase.dimensions}
             </span>
-          </div>
+          </motion.div>
 
           {/* Case Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
             {CASES.map((c, i) => (
               <button
                 key={i}
-                onClick={() => {
-                  setCaseIdx(i);
-                  setSelectedStep(null);
-                  setSelectedFix(null);
-                }}
+                onClick={() => { setCaseIdx(i); setSelectedStep(null); setSelectedFix(null); }}
                 style={{
-                  flex: 1,
-                  padding: '6px 8px',
-                  borderRadius: '10px',
+                  flex: 1, padding: '4px 6px', borderRadius: '8px',
                   background: caseIdx === i ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)',
                   border: caseIdx === i ? '1.5px solid #38bdf8' : '1px solid rgba(255,255,255,0.12)',
-                  color: '#ffffff',
-                  fontSize: '0.82rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
+                  color: '#ffffff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer',
                 }}
               >
                 {solvedCases[i] ? '✅' : '🔍'} Case #{i + 1}
@@ -251,8 +253,13 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
         {/* Right Column: Worked Steps Inspection & Correction Selector */}
         <div className="station-col-right">
           {/* Step list to inspect */}
-          <div className="glass-card" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '0.84rem', color: '#fcd34d', fontWeight: 800 }}>
+          <motion.div
+            key={`steps-${shakeKey}`}
+            animate={{ x: [0, 0, 0] }}
+            className="glass-card"
+            style={{ padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: '4px' }}
+          >
+            <span style={{ fontSize: '0.8rem', color: '#fcd34d', fontWeight: 800 }}>
               🕵️ Step 1: Tap the step that contains the error:
             </span>
 
@@ -260,82 +267,63 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
               const isSelected = selectedStep === st.id;
               let border = 'rgba(255,255,255,0.15)';
               let bg = 'rgba(255,255,255,0.05)';
-              if (isSelected && st.isFlawed) {
-                border = '#f59e0b';
-                bg = 'rgba(245,158,11,0.2)';
-              } else if (isSelected && !st.isFlawed) {
-                border = '#ef5350';
-                bg = 'rgba(239,83,80,0.2)';
-              }
+              if (isSelected && st.isFlawed) { border = '#f59e0b'; bg = 'rgba(245,158,11,0.2)'; }
+              else if (isSelected && !st.isFlawed) { border = '#ef5350'; bg = 'rgba(239,83,80,0.2)'; }
 
               return (
-                <button
+                <motion.button
                   key={st.id}
                   onClick={() => handleStepClick(st)}
                   disabled={isSolved}
+                  animate={isSelected && !st.isFlawed ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }}
+                  transition={{ duration: 0.4 }}
                   style={{
-                    background: bg,
-                    border: `1.5px solid ${border}`,
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    textAlign: 'left',
-                    color: '#ffffff',
-                    cursor: isSolved ? 'default' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
+                    background: bg, border: `1.5px solid ${border}`, borderRadius: '8px',
+                    padding: '4px 8px', textAlign: 'left', color: '#ffffff',
+                    cursor: isSolved ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', gap: '1px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#94a3b8', fontWeight: 800 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#94a3b8', fontWeight: 800 }}>
                     <span>{st.label}</span>
                     {isSelected && st.isFlawed && <span style={{ color: '#fcd34d' }}>⚠️ Error Found!</span>}
                   </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 700 }}>{st.text}</div>
-                </button>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{st.text}</div>
+                </motion.button>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* Correction options */}
-          <div className="glass-card" style={{ padding: '10px 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div className="glass-card" style={{ padding: '6px 10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 0 }}>
             <div>
-              <span style={{ fontSize: '0.84rem', color: '#38bdf8', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 800 }}>
                 🔧 Step 2: Choose the Correct Math Repair:
               </span>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                 {activeCase.fixes.map((fix, idx) => {
                   const isSelected = selectedFix === idx;
                   let border = 'rgba(255,255,255,0.15)';
                   let bg = 'rgba(255,255,255,0.05)';
-                  if (isSelected && fix.correct) {
-                    border = '#4caf50';
-                    bg = 'rgba(76,175,80,0.25)';
-                  } else if (isSelected && !fix.correct) {
-                    border = '#ef5350';
-                    bg = 'rgba(239,83,80,0.25)';
-                  }
+                  if (isSelected && fix.correct) { border = '#4caf50'; bg = 'rgba(76,175,80,0.25)'; }
+                  else if (isSelected && !fix.correct) { border = '#ef5350'; bg = 'rgba(239,83,80,0.25)'; }
 
                   return (
-                    <button
+                    <motion.button
                       key={idx}
                       onClick={() => handleFixSelect(idx)}
-                      disabled={selectedStep !== 2 || isSolved}
+                      disabled={!flawFound || isSolved}
+                      animate={isSelected && !fix.correct ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }}
+                      transition={{ duration: 0.4 }}
                       style={{
-                        background: bg,
-                        border: `1.5px solid ${border}`,
-                        borderRadius: '10px',
-                        padding: '8px 10px',
-                        textAlign: 'left',
-                        color: '#ffffff',
-                        fontSize: '0.86rem',
-                        fontWeight: 700,
-                        cursor: selectedStep === 2 && !isSolved ? 'pointer' : 'default',
-                        opacity: selectedStep !== 2 ? 0.45 : 1,
+                        background: bg, border: `1.5px solid ${border}`, borderRadius: '8px',
+                        padding: '4px 8px', textAlign: 'left', color: '#ffffff', fontSize: '0.78rem', fontWeight: 700,
+                        cursor: flawFound && !isSolved ? 'pointer' : 'default', opacity: !flawFound ? 0.45 : 1,
+                        lineHeight: 1.25,
                       }}
                     >
                       {fix.text}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -343,29 +331,23 @@ export default function ShadedRegionDetective({ onComplete, audioEnabled }) {
 
             {/* Success Box */}
             {isSolved ? (
-              <div className="station-success anim-bounce-in" style={{ marginTop: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.4rem' }}>🎉</span>
+              <div className="station-success anim-bounce-in" style={{ marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                  <span style={{ fontSize: '1.2rem' }}>🎉</span>
                   <p className="station-success-msg">
-                    Case #{caseIdx + 1} solved! Corrected formula: <strong>{activeCase.correctedResult}</strong>.
+                    Case #{caseIdx + 1} solved! Result: <strong>{activeCase.correctedResult}</strong>.
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                   {!allSolved && (
-                    <button className="btn btn-primary btn-sm" onClick={nextCase}>
-                      Next Case ➔
-                    </button>
+                    <button className="btn btn-primary btn-sm" style={{ padding: '3px 8px', minHeight: '26px', fontSize: '0.78rem' }} onClick={nextCase}>Next ➔</button>
                   )}
-                  <button className="btn btn-green btn-sm" onClick={onComplete}>
-                    Complete Station ✓
-                  </button>
+                  <button className="btn btn-green btn-sm" style={{ padding: '3px 8px', minHeight: '26px', fontSize: '0.78rem' }} onClick={onComplete}>Complete ✓</button>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '6px' }}>
-                {selectedStep !== 2
-                  ? 'First tap Step 2 above to inspect the calculation error.'
-                  : 'Now select the correct repair to fix the blueprint calculation.'}
+              <div style={{ fontSize: '0.76rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '3px' }}>
+                {!flawFound ? 'First tap the step above that has the calculation error.' : 'Now select the correct repair to fix the blueprint calculation.'}
               </div>
             )}
           </div>

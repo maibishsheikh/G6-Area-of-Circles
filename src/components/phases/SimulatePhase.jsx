@@ -2,6 +2,7 @@
 // 4 Interactive Challenge Stations for CircleQuest
 
 import React, { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import './SimulatePhase.css';
 import SliceDiscoveryLab from '../simulations/SliceDiscoveryLab.jsx';
 import GardenDesignerStation from '../simulations/GardenDesignerStation.jsx';
@@ -84,13 +85,22 @@ export default function SimulatePhase({ state, dispatch }) {
           ))}
         </div>
 
-        {/* Station Content Area */}
-        <div className="sim-station-area" role="tabpanel" key={s}>
+        {/* Station Content Area — mount-only fade per station (no exit animation:
+            AnimatePresence exit callbacks have previously left ghost click-blocking
+            cards in this architecture, so we intentionally only animate entrance). */}
+        <motion.div
+          className="sim-station-area"
+          role="tabpanel"
+          key={s}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: 'easeOut' }}
+        >
           {s === 0 && <SliceDiscoveryLab onComplete={() => handleStationComplete(0)} audioEnabled={state?.audioEnabled} />}
           {s === 1 && <GardenDesignerStation onComplete={() => handleStationComplete(1)} audioEnabled={state?.audioEnabled} />}
           {s === 2 && <TrackBuilderStation onComplete={() => handleStationComplete(2)} audioEnabled={state?.audioEnabled} />}
           {s === 3 && <ShadedRegionDetective onComplete={() => handleStationComplete(3)} audioEnabled={state?.audioEnabled} />}
-        </div>
+        </motion.div>
 
         {/* Footer Navigation */}
         <div className="sim-footer">
