@@ -7,6 +7,7 @@ import BossBattleModal from '../quiz/BossBattleModal.jsx';
 import FeedbackOverlay from '../shared/FeedbackOverlay.jsx';
 import { useAudio } from '../../hooks/useAudio.js';
 import { DISTRICTS } from '../../data/questionBank.js';
+import { calcStars } from '../../utils/scoring.js';
 import {
   playQuestionNarration,
   playCorrectNarration,
@@ -131,8 +132,9 @@ export default function PlayPhase({ state, dispatch }) {
   }
 
   function startDistrict(idx) {
+    dispatch({ type: 'SELECT_DISTRICT', payload: idx });
     setShowMap(false);
-    setTimeout(() => narrate(playQuestionNarration(qs[idx * 10]?.questionText || '')), 400);
+    setTimeout(() => narrate(playQuestionNarration(qs[idx * 10]?.questionText || '')), 350);
   }
 
   // Play done screen
@@ -159,47 +161,58 @@ export default function PlayPhase({ state, dispatch }) {
   // District Map Screen
   if (showMap) {
     const isAllDone = qIdx >= 100;
+    const totalStars = state?.districtScores?.reduce((s, sc) => {
+      if (sc === null || sc === undefined) return s;
+      return s + calcStars(sc);
+    }, 0) || 0;
+
     return (
       <div className="play-map-wrap">
-        <div className="play-map-card glass-card">
-          <h2 className="play-map-title subheadline">🗺️ Circle Worlds Kingdom</h2>
-          <p className="body-text" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-            {isAllDone ? (
-              <strong style={{ color: 'var(--gold)' }}>All 10 Circle Worlds Complete!</strong>
-            ) : (
-              <>World {distIdx + 1}: <strong style={{ color: 'var(--gold)' }}>{district.name}</strong></>
-            )}
-          </p>
+        <div className="play-map-card">
+          {/* Glowing neon-mint top notch matching reference image */}
+          <div className="play-map-top-notch" />
 
+          {/* Header Row: Title & Subtitle on left, Star Score Badge on right */}
+          <div className="play-map-header">
+            <div className="play-map-header-left">
+              <h2 className="play-map-title">Area Game Worlds</h2>
+              <p className="play-map-subtitle">
+                10 Themed Worlds · Need 4/10 Correct to Unlock Next World
+              </p>
+            </div>
+            <div className="play-map-header-right">
+              <div className="world-stars-badge" title="Total Stars Earned across all 10 Worlds">
+                <span className="star-icon">⭐</span>
+                <span className="star-count">{totalStars} / 30</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 5x2 Grid of World Cards */}
           <KingdomMap
             districtScores={state?.districtScores || []}
             districtCorrect={state?.districtCorrect || []}
             currentDistrict={isAllDone ? 10 : distIdx}
-            onSelectDistrict={(d) => {
-              if (d <= distIdx) {
-                setShowMap(false);
-              }
-            }}
+            onSelectDistrict={startDistrict}
           />
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '10px' }}>
-            {!isAllDone ? (
-              <>
-                <button className="btn btn-primary" onClick={() => startDistrict(distIdx)}>
-                  🚀 Enter {district.name}!
-                </button>
-                <button className="btn btn-outline" onClick={() => setShowBoss(true)} style={{ borderColor: '#feca57', color: '#feca57' }}>
-                  👑 Challenge Boss ({district.boss.name})
-                </button>
-                <button className="btn btn-outline" onClick={() => dispatch({ type: 'SET_PHASE', payload: 'reflect' })}>
-                  📓 Jump to Reflect
-                </button>
-              </>
-            ) : (
-              <button className="btn btn-primary" onClick={() => setShowMap(false)}>
-                📊 View Results
+          {/* Sleek bottom utility bar */}
+          <div className="play-map-bottom-bar">
+            {!isAllDone && (
+              <button
+                className="map-action-pill boss-pill"
+                onClick={() => setShowBoss(true)}
+                title={`Challenge World ${distIdx + 1} Boss: ${district.boss.name}`}
+              >
+                👑 Boss Battle: {district.boss.name}
               </button>
             )}
+            <button
+              className="map-action-pill reflect-pill"
+              onClick={() => dispatch({ type: 'SET_PHASE', payload: 'reflect' })}
+            >
+              📓 Jump to Reflect Phase →
+            </button>
           </div>
         </div>
 
